@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Advanced Weather App</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #2193b0, #6dd5ed);
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+/* 🌧❄ Animation Layers */
+#rain, #snow {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    display: none;
+}
+
+/* Rain drops */
+.drop {
+    position: absolute;
+    bottom: 100%;
+    width: 2px;
+    height: 15px;
+    background: rgba(255,255,255,0.6);
+    animation: rain 0.5s linear infinite;
+}
+
+@keyframes rain {
+    to {
+        transform: translateY(110vh);
+    }
+}
+
+/* Snow flakes */
+.flake {
+    position: absolute;
+    top: -10px;
+    width: 8px;
+    height: 8px;
+    background: white;
+    border-radius: 50%;
+    opacity: 0.8;
+    animation: snow 6s linear infinite;
+}
+
+@keyframes snow {
+    to {
+        transform: translateY(110vh);
+    }
+}
+
+/* App UI */
+.app {
+    position: relative;
+    z-index: 2;
+    background: rgba(0,0,0,0.35);
+    width: 380px;
+    margin: auto;
+    margin-top: 40px;
+    padding: 25px;
+    border-radius: 16px;
+    text-align: center;
+    color: white;
+}
+
+input {
+    width: 80%;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+}
+
+button {
+    margin-top: 10px;
+    padding: 10px 20px;
+    background: #ffcc00;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.icon {
+    width: 80px;
+    animation: float 2s infinite ease-in-out;
+}
+
+@keyframes float {
+    50% { transform: translateY(-8px); }
+}
+
+.temp {
+    font-size: 42px;
+}
+
+.forecast {
+    display: flex;
+    overflow-x: auto;
+    margin-top: 10px;
+}
+
+.day {
+    background: rgba(255,255,255,0.15);
+    margin-right: 10px;
+    padding: 10px;
+    border-radius: 10px;
+    min-width: 90px;
+}
+
+.error {
+    color: #ffb3b3;
+}
+</style>
+</head>
+
+<body>
+
+<!-- Animation layers -->
+<div id="rain"></div>
+<div id="snow"></div>
+
+<div class="app">
+    <h2>Weather App</h2>
+    <input id="city" placeholder="Enter city">
+    <br>
+    <button onclick="getWeather()">Get Weather</button>
+
+    <div class="error" id="error"></div>
+
+    <div id="current" style="display:none;">
+        <h3 id="location"></h3>
+        <img id="icon" class="icon">
+        <div class="temp" id="temp"></div>
+        <p id="condition"></p>
+    </div>
+
+    <h3 id="forecastTitle" style="display:none;">7-Day Forecast</h3>
+    <div class="forecast" id="forecast"></div>
+</div>
+
+<script>
+const apiKey = "50f4bde7b4764c51b64165236252512";
+
+function clearEffects() {
+    rain.innerHTML = "";
+    snow.innerHTML = "";
+    rain.style.display = "none";
+    snow.style.display = "none";
+}
+
+function makeRain() {
+    rain.style.display = "block";
+    for (let i = 0; i < 100; i++) {
+        let d = document.createElement("div");
+        d.className = "drop";
+        d.style.left = Math.random() * 100 + "vw";
+        d.style.animationDelay = Math.random() + "s";
+        rain.appendChild(d);
+    }
+}
+
+function makeSnow() {
+    snow.style.display = "block";
+    for (let i = 0; i < 50; i++) {
+        let f = document.createElement("div");
+        f.className = "flake";
+        f.style.left = Math.random() * 100 + "vw";
+        f.style.animationDelay = Math.random() * 5 + "s";
+        snow.appendChild(f);
+    }
+}
+
+function getWeather() {
+    const city = document.getElementById("city").value.trim();
+    if (!city) return;
+
+    fetch(`https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${city}&days=7`)
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) {
+            error.innerText = "City not found";
+            return;
+        }
+
+        error.innerText = "";
+        current.style.display = "block";
+        forecastTitle.style.display = "block";
+
+        location.innerText = `${data.location.name}, ${data.location.country}`;
+        temp.innerText = `${data.current.temp_c}°C`;
+        condition.innerText = data.current.condition.text;
+        icon.src = "https:" + data.current.condition.icon;
+
+        clearEffects();
+        const text = data.current.condition.text.toLowerCase();
+
+        if (text.includes("rain") || text.includes("drizzle") || text.includes("thunder")) {
+            makeRain();
+        } else if (text.includes("snow") || text.includes("blizzard")) {
+            makeSnow();
+        }
+
+        forecast.innerHTML = "";
+        data.forecast.forecastday.forEach(d => {
+            const day = new Date(d.date).toLocaleDateString("en-US",{weekday:"short"});
+            forecast.innerHTML += `
+                <div class="day">
+                    <strong>${day}</strong><br>
+                    <img src="https:${d.day.condition.icon}">
+                    <div>${d.day.avgtemp_c}°C</div>
+                </div>`;
+        });
+    });
+}
+</script>
+
+</body>
+</html>
+
+
